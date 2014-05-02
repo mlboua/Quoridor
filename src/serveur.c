@@ -25,11 +25,41 @@
 #include "../includes/fonctionsTCP.h"
 
 #include "../includes/protocolQuoridor.h"
-//#include "../includes/validation.h"
+#include "../includes/validation.h"
 
 /* taille du buffer de reception */
 #define TAIL_BUF 100
 
+void validReponse(int joueur, TypCoupRep rep){
+	//int err;
+	//err = send(joueur, &rep, sizeof(rep), 0);
+	if (send(joueur, &rep, sizeof(rep), 0) < 0) {
+		perror("serveur : erreur sur le send de la validite du coup");
+		shutdown(joueur, 2); close(joueur);
+		exit(3);
+	}
+}
+
+void partiReponse(int joueur, TypPartieRep partiRep){
+	//err = send(joueur, &partiRep, sizeof(partiRep), 0);
+	if (send(joueur, &partiRep, sizeof(partiRep), 0) < 0) {
+		perror("serveur : erreur sur le send de la reponse de partie");
+		shutdown(joueur, 2); close(joueur);
+		exit(3);
+	}
+}
+
+void envoyerCoup(int joueur, TypCoupReq coup){
+	//err = send(sock, &coup, sizeof(coup), 0);
+	if (send(joueur, &coup, sizeof(coup), 0) < 0) {
+		perror("client : erreur sur le send d'envoi du coup");
+		shutdown(joueur, 2); close(joueur);
+		exit(3);
+	}
+	printf("Coup envoyé\n");
+}
+
+//main
 main(int argc, char** argv) {
   	int sock_cont, sock,
       	joueurs[2],       /* descripteurs des sockets locales */
@@ -85,205 +115,166 @@ main(int argc, char** argv) {
 	}
   
  	
-	FD_ZERO(&ensActif);
-	FD_SET(sock_cont, &ensActif);
-  	
-  	//while(1){
-  		/*while( nbDemande < 2){
-  			ens = ensActif;
-  			if(select(FD_SETSIZE,&ens, NULL,NULL,NULL) < 0){
-				perror("ERROR SELECT()");
-  				exit(-1);
-  			}
-				if(FD_ISSET(sock_cont, &ens)){
-					//printf("connexion\n");
-						joueurs[nbSock] = accept(sock_cont, 
+	joueurs[0] = accept(sock_cont, 
 									  (struct sockaddr *)&nom_transmis, 
 									  &size_addr_trans);
-						if (joueurs[nbSock] < 0) {
-							perror("serveur :  erreur sur accept");
-							close(sock_cont);
-							exit(0); 
-						}
-						
-						printf("Connexion du joueur %d", nbSock+1);
-						FD_SET(joueurs[nbSock], &ensActif);
-						nbSock++;
-				}
-				else{
-					for(i = 0; i < nbSock; i++){
-					if(FD_ISSET(joueurs[i], &ens)){	
-						err = recv(joueurs[i], &demande[nbDemande], tailleDem, 0);
-						if (err < 0) {
-							perror("serveur : erreur dans la reception 1");
-							shutdown(joueurs[i], 2); close(joueurs[i]); close(sock_cont);
-							exit(0);
-						}
-						printf("\ndonnee reçu %s \n", demande[nbDemande].nomJoueur);
-						file[nbDemande] = joueurs[i];
-						nbDemande++;	
-					}
-				}			
+									  
+	err = recv(joueurs[0], &demande[0], tailleDem, 0);
+	if (err < 0) {
+		perror("serveur : erreur dans la reception 1");
+		shutdown(joueurs[0], 2); close(joueurs[0]); close(sock_cont);
+		exit(0);
+	}
+		
+	joueurs[1] = accept(sock_cont, 
+									  (struct sockaddr *)&nom_transmis, 
+									  &size_addr_trans);
+	err = recv(joueurs[1], &demande[1], tailleDem, 0);
+	if (err < 0) {
+		perror("serveur : erreur dans la reception 1");
+		shutdown(joueurs[1], 2); close(joueurs[1]); close(sock_cont);
+		exit(0);
+	}
+	partiRep.err = ERR_OK;
+	partiRep.couleur = BLANC;
+	strcpy(partiRep.nomAdvers, demande[1].nomJoueur);
+	
+	partiReponse(joueurs[0], partiRep);//envoi de la reponse de la demande
+		
+	partiRep.err = ERR_OK;
+	partiRep.couleur = NOIR;
+	strcpy(partiRep.nomAdvers, demande[0].nomJoueur);
+		
+	partiReponse(joueurs[1], partiRep);//envoi de la reponse de la demande
+		
+		
+	/*err = recv(joueurs[0], &coup, sizeof(coup), 0);
+	if (err < 0) {
+		perror("serveur : erreur dans la reception du coup");
+		shutdown(joueurs[0], 2); close(joueurs[0]); close(sock_cont);
+		exit(0);
+	}
+	switch(coup.idRequest){
+		case COUP:
+			if(validationCoup(1,coup)){
+				repCoup.err = ERR_COUP;
+				repCoup.validCoup = VALID;
+				
+				validReponse(joueurs[0],repCoup);
+				validReponse(joueurs[1],repCoup);
 			}
-		}*/
-		//FD_ZERO(&parti);
-		joueurs[0] = accept(sock_cont, 
-									  (struct sockaddr *)&nom_transmis, 
-									  &size_addr_trans);
-		//FD_SET(joueurs[0], &parti);
-		err = recv(joueurs[0], &demande[0], tailleDem, 0);
-		if (err < 0) {
-			perror("serveur : erreur dans la reception 1");
-			shutdown(joueurs[0], 2); close(joueurs[0]); close(sock_cont);
-			exit(0);
-		}
-		
-		joueurs[1] = accept(sock_cont, 
-									  (struct sockaddr *)&nom_transmis, 
-									  &size_addr_trans);
-		//FD_SET(joueurs[1], &parti);
-		err = recv(joueurs[1], &demande[1], tailleDem, 0);
-		if (err < 0) {
-			perror("serveur : erreur dans la reception 1");
-			shutdown(joueurs[1], 2); close(joueurs[1]); close(sock_cont);
-			exit(0);
-		}
-		partiRep.err = ERR_OK;
-		partiRep.couleur = BLANC;
-		strcpy(partiRep.nomAdvers, demande[1].nomJoueur);
-		err = send(joueurs[0], &partiRep, sizeof(partiRep), 0);
-		//err = send(file[0], &partiRep, sizeof(partiRep), 0);
-		if (err < 0) {
-			perror("serveur : erreur sur le send");
-			shutdown(file[0], 2); close(file[0]);
-			exit(3);
-		}
-		
-		partiRep.err = ERR_OK;
-		partiRep.couleur = NOIR;
-		strcpy(partiRep.nomAdvers, demande[0].nomJoueur);
-		//err = send(file[1], &partiRep, sizeof(partiRep), 0);
-		err = send(joueurs[1], &partiRep, sizeof(partiRep), 0);
-		if (err < 0) {
-			perror("serveur : erreur sur le send");
-			shutdown(file[1], 2); close(file[1]);
-			exit(3);
-		}
-		
-		
-	//}
-	/*FD_ZERO(&parti);
-	FD_SET(file[0], &parti);
-	FD_SET(file[1], &parti);*/
+			else{
+				repCoup.err = ERR_COUP;
+				repCoup.validCoup = TRICHE;
+				
+				validReponse(joueurs[0],repCoup);
+				validReponse(joueurs[1],repCoup);
+				fin = 0;
+			}
+		break;
+		default:
+					printf("Erreur sur le type de requete\n");
+		break;
+	}*/
+	
+	FD_ZERO(&parti);
+	FD_SET(joueurs[0], &parti);
+	FD_SET(joueurs[1], &parti);
 	tv.tv_sec = 6;
-    tv.tv_usec = 0;
-	//while(fin){
-		
-		err = recv(joueurs[i], &coup, sizeof(coup), 0);
-		if (err < 0) {
-			perror("serveur : erreur dans la reception du coup");
-			shutdown(joueurs[i], 2); close(joueurs[i]); close(sock_cont);
-			exit(0);
-		}
-		printf("Reception de coup :\n");
-		printf("type de requete : %d\n",coup.idRequest);
-		switch(coup.idRequest){
-					case COUP:
-						printf("couleur du pion : %d\n",coup.couleurPion);
-						if(coup.propCoup == 0){
-							printf("Deplacement du pion :\n");
-						}
-						else{
-							printf("Pose de mur ou coup gagnant\n");
-						}
-						repCoup.err = ERR_COUP;
-						repCoup.validCoup = TIMEOUT;
-						err = send(joueurs[0], &repCoup, sizeof(repCoup), 0);
-						if (err < 0) {
-							perror("serveur : erreur sur le send");
-							shutdown(file[0], 2); close(file[1]);
-							exit(3);
-						}
-						err = send(joueurs[1], &repCoup, sizeof(repCoup), 0);
-						if (err < 0) {
-							perror("serveur : erreur sur le send");
-							shutdown(file[1], 2); close(file[1]);
-							exit(3);
-						}
-						fin = 0;
-					break;
-					default:
-					
-					break;
-				}
-		
-		/*retval = select(FD_SETSIZE,&parti, NULL,NULL,&tv);
+  tv.tv_usec = 0;
+	while(fin){
+	FD_ZERO(&parti);
+	FD_SET(joueurs[0], &parti);
+	FD_SET(joueurs[1], &parti);
+	tv.tv_sec = 6;
+  tv.tv_usec = 0;
+  
+		retval = select(FD_SETSIZE,&parti, NULL,NULL,&tv);
 		if(retval == - 1){
 			perror("erreur select()");
 		}
 		else if(retval){
 			for(i=0;i<2;i++){
 				if(FD_ISSET(joueurs[i], &parti)){
-					err = recv(joueurs[i], &coup, sizeof(coup), 0);
-					if (err < 0) {
-						perror("serveur : erreur dans la reception du coup");
-						shutdown(joueurs[i], 2); close(joueurs[i]); close(sock_cont);
-						exit(0);
+					if(joueurs[i] == joueurs[0]){
+						printf("Reception du coup du jouer 1\n");
+						err = recv(joueurs[0], &coup, sizeof(coup), 0);
+						if (err < 0) {
+							perror("serveur : erreur dans la reception du coup");
+							shutdown(joueurs[0], 2); close(joueurs[0]); close(sock_cont);
+							exit(0);
+						}
+						//traitement d'un coup
+						switch(coup.idRequest){
+							case COUP:
+								if(validationCoup(1,coup)){
+									repCoup.err = ERR_COUP;
+									repCoup.validCoup = VALID;
+				
+									validReponse(joueurs[0],repCoup);
+									validReponse(joueurs[1],repCoup);
+									envoyerCoup(joueurs[1], coup);
+								}
+								else{
+									repCoup.err = ERR_COUP;
+									repCoup.validCoup = TRICHE;
+				
+									validReponse(joueurs[0],repCoup);
+									validReponse(joueurs[1],repCoup);
+									fin = 0;
+								}
+							break;
+							default:
+										printf("Erreur sur le type de requete\n");
+							break;
+						}//fin de switch
+					}//fin de traitement du joueur 1
+					else{
+						printf("Reception du coup du jouer 2\n");
+						err = recv(joueurs[1], &coup, sizeof(coup), 0);
+						if (err < 0) {
+							perror("serveur : erreur dans la reception du coup");
+							shutdown(joueurs[1], 2); close(joueurs[1]); close(sock_cont);
+							exit(0);
+						}
+						//traitement d'un coup
+						switch(coup.idRequest){
+							case COUP:
+								if(validationCoup(2,coup)){
+									repCoup.err = ERR_COUP;
+									repCoup.validCoup = VALID;
+				
+									validReponse(joueurs[1],repCoup);
+									validReponse(joueurs[0],repCoup);
+									envoyerCoup(joueurs[0], coup);
+								}
+								else{
+									repCoup.err = ERR_COUP;
+									repCoup.validCoup = TRICHE;
+				
+									validReponse(joueurs[1],repCoup);
+									validReponse(joueurs[0],repCoup);
+									fin = 0;
+								}
+							break;
+							default:
+										printf("Erreur sur le type de requete\n");
+							break;
+						}//fin de switch
 					}
-					printf("Reception du coup \n");
-			
-				switch(coup.idRequest){
-					case COUP:
-						printf("couleur du pion : %d\n",coup.couleurPion);
-						if(coup.propCoup == 0){
-							printf("Deplacement du pion :\n");
-						}
-						else{
-							printf("Pose de mur ou coup gagnant\n");
-						}
-						repCoup.err = ERR_OK;
-						repCoup.validCoup = VALID;
-						err = send(joueurs[0], &repCoup, sizeof(repCoup), 0);
-						if (err < 0) {
-							perror("serveur : erreur sur le send");
-							shutdown(file[0], 2); close(file[1]);
-							exit(3);
-						}
-						err = send(joueurs[1], &repCoup, sizeof(repCoup), 0);
-						if (err < 0) {
-							perror("serveur : erreur sur le send");
-							shutdown(file[1], 2); close(file[1]);
-							exit(3);
-						}
-						fin = 0;
-					break;
-					default:
-					
-					break;
 				}
 			}
-		}
 		}
 		else{
 			printf("No data within six secondes \n");
 			
 			repCoup.err = ERR_COUP;
 			repCoup.validCoup = TIMEOUT;
-			err = send(joueurs[0], &repCoup, sizeof(repCoup), 0);
-			if (err < 0) {
-				perror("serveur : erreur sur le send");
-				shutdown(joueurs[0], 2); close(file[1]);
-				exit(3);
-			}
-			err = send(joueurs[1], &repCoup, sizeof(repCoup), 0);
-			if (err < 0) {
-				perror("serveur : erreur sur le send");
-				shutdown(joueurs[1], 2); close(file[1]);
-				exit(3);
-			}
+			validReponse(joueurs[0],repCoup);
+			validReponse(joueurs[1],repCoup);
 			fin = 0;
-		}*/
-	//}//fin de tanque partie
+		}
+	}//fin de tanque partie
   	
 
 	  /* 

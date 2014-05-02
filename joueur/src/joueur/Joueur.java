@@ -11,14 +11,12 @@ import java.util.Scanner;
 
 public class Joueur {
 	private static int PARTIE = 0;
-	private static int COUP = 1;
+	static byte[] coup = new byte[28];
 	public static void main(String[] args) {
 		Socket socket = null;
 		InputStream in = null;
 		OutputStream out;
 		Scanner sc = new Scanner(System.in);
-		//byte[] req = new byte[34];
-		byte[] coup = new byte[28];
 		try {
 			socket = new Socket("localhost", 2014);
 			System.out.println("Connexion établie");
@@ -29,38 +27,44 @@ public class Joueur {
 			String nom = sc.nextLine();
 						
 			demandePartie(out,PARTIE, nom);
-			PartiRep rep = startParti(in);
+			PartiRep rep = reponsePartie(in);
 			
 
 			
 			System.out.println("Demande de parti Error code : "+rep.err+" et couleur : "+rep.couleur+" nom :"+rep.nom);
-			if(rep.couleur == 0){
-				byte[] id = intToByteArray(5);
-				byte[] col = intToByteArray(Integer.reverseBytes(0));
-				byte[] typeCoup = intToByteArray(0);
-				byte[] axeN = intToByteArray(2);
-				byte[] axeA = intToByteArray(0);
-				for(int i = 0; i< id.length;i++)coup[i] = id[i];
-				for(int i = 0; i< col.length;i++)coup[id.length+i] = col[i];
-				for(int i = 0; i< typeCoup.length;i++)coup[8+i] = typeCoup[i];
-				for(int i = 0; i< axeN.length;i++)coup[12+i] = axeN[i];
-				for(int i = 0; i< axeA.length;i++)coup[16+i] = axeA[i];
-
-				out.write(coup);
-				out.flush();
-				System.out.println("Coup envoyé !");
+			if(rep.couleur == 0){//je commence 
+				deplacerPion(out, rep.couleur, new Case(4,0), new Case(4,1));
 			}
+			CoupRep cp = validiteCoup(in);
+			in.read(coup);
+			byte[] id = new byte[4];
+			byte[] couleur = new byte[4];
+			byte[] type = new byte[4];
+			byte[] axeN = new byte[4];
+			byte[] axeA = new byte[4];
+			byte[] axeNA = new byte[4];
+			byte[] axeAA = new byte[4];
 			
-			byte[] validCoup = new byte[8];
-			int bytesRead = in.read(validCoup);
-			byte[] coupRep = new byte[4];
-			byte[] coupValide = new byte[4];
-			for(int i = 0; i < 4;i++)coupRep[i] = validCoup[i];
-			for(int i = 0; i < 4;i++)coupValide[i] = validCoup[4+i];
-			
-			int errCoup = getInt(coupRep);
-			int valCoup = getInt(coupValide);
-			System.out.println("Error du coup adv "+errCoup+" validité "+valCoup);
+			for(int i = 0; i < 4;i++)id[i] = coup[i];
+			for(int i = 0; i < 4;i++)couleur[i] = coup[4+i];
+			for(int i = 0; i < 4;i++)type[i] = coup[8+i];
+			for(int i = 0; i < 4;i++)axeN[i] = coup[12+i];
+			for(int i = 0; i < 4;i++)axeA[i] = coup[16+i];
+			int idRequest = getInt(id);
+			int pion = getInt(couleur);
+			int typeCoup = getInt(type);
+			int aDepart = getInt(axeN);
+			int oDepart = getInt(axeA);
+			if(typeCoup == 0){
+				for(int i = 0; i < 4;i++)axeNA[i] = coup[20+i];
+				for(int i = 0; i < 4;i++)axeAA[i] = coup[24+i];
+				System.out.println("Coup adverse : deplacement");
+			}
+			else{
+				for(int i = 0; i < 4;i++)axeNA[i] = coup[20+i];
+				System.out.println("Coup adverse : mur");
+			}
+			deplacerPion(out, rep.couleur, new Case(4,1), new Case(4,2));
 			
 			socket.close();
 		} catch (UnknownHostException e) {
@@ -71,7 +75,9 @@ public class Joueur {
 
 	}
 	
-	
+	/*
+	 * definitions de quelques fonctions
+	 */
 	
 	
 	//convertion d'un int en tableau de byte
@@ -92,7 +98,7 @@ public class Joueur {
 	}
 	
 	//envoi d'une demande de partie
-	public static void demandePartie(OutputStream out,int type, String name){
+	public static void demandePartie(OutputStream out,int type, String name) throws IOException{
 		byte[] req = new byte[34];
 		byte[] t = intToByteArray(type);
 		for(int i = 0;i <t.length;i++){
@@ -102,15 +108,13 @@ public class Joueur {
 		for(int i = 0; i< nom.length;i++){
 			req[4+i] = nom[i];
 		}
-		try {
-			out.write(req);
-			out.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		out.write(req);
+		out.flush();
+
 	}
 
-	public static PartiRep startParti(InputStream in) throws IOException{
+	//rec
+	public static PartiRep reponsePartie(InputStream in) throws IOException{
 		int bytesRead = -1;
 		byte[] partiRep = new byte[40];
 		bytesRead = in.read(partiRep);
@@ -124,4 +128,68 @@ public class Joueur {
 			
 		return new PartiRep(codeErr, couleur, nomA);
 	}
+	
+	public static void deplacerPion(OutputStream out, int couleur, Case depart, Case arrive) throws IOException{
+		byte[] coup = new byte[28];
+		
+		byte[] id = intToByteArray(1);
+		byte[] coleur = intToByteArray(couleur);
+		byte[] typeCoup = intToByteArray(0);
+		
+		byte[] axeN = intToByteArray(depart.axeNum);
+		byte[] axeA = intToByteArray(depart.axeAlpha);
+		byte[] axeNA = intToByteArray(arrive.axeNum);
+		byte[] axeAA = intToByteArray(arrive.axeAlpha);
+		
+		for(int i = 0; i< 4;i++)coup[i] = id[i];
+		for(int i = 0; i< 4;i++)coup[4+i] = coleur[i];
+		for(int i = 0; i< 4;i++)coup[8+i] = typeCoup[i];
+		for(int i = 0; i< 4;i++)coup[12+i] = axeN[i];
+		for(int i = 0; i< 4;i++)coup[16+i] = axeA[i];
+		for(int i = 0; i< 4;i++)coup[20+i] = axeNA[i];
+		for(int i = 0; i< 4;i++)coup[24+i] = axeAA[i];
+
+		out.write(coup);
+		out.flush();
+		System.out.println("Coup envoyé !");
+	}
+	public static void poserMur(OutputStream out,int couleur, Case origine, int horientation) throws IOException{
+        byte[] coup = new byte[28];
+		
+		byte[] id = intToByteArray(1);
+		byte[] coleur = intToByteArray(couleur);
+		byte[] typeCoup = intToByteArray(0);
+		
+		byte[] axeN = intToByteArray(origine.axeNum);
+		byte[] axeA = intToByteArray(origine.axeAlpha);
+		byte[] h = intToByteArray(horientation);
+		
+		for(int i = 0; i< 4;i++)coup[i] = id[i];
+		for(int i = 0; i< 4;i++)coup[4+i] = coleur[i];
+		for(int i = 0; i< 4;i++)coup[8+i] = typeCoup[i];
+		for(int i = 0; i< 4;i++)coup[12+i] = axeN[i];
+		for(int i = 0; i< 4;i++)coup[16+i] = axeA[i];
+		for(int i = 0; i< 4;i++)coup[20+i] = h[i];
+
+		out.write(coup);
+		out.flush();
+		System.out.println("Coup envoyé !");
+	}
+	public static CoupRep validiteCoup(InputStream in) throws IOException{
+		byte[] validCoup = new byte[8];
+		int bytesRead = in.read(validCoup);
+		byte[] coupRep = new byte[4];
+		byte[] coupValide = new byte[4];
+		for(int i = 0; i < 4;i++)coupRep[i] = validCoup[i];
+		for(int i = 0; i < 4;i++)coupValide[i] = validCoup[4+i];
+		
+		int errCoup = getInt(coupRep);
+		int valCoup = getInt(coupValide);
+		System.out.println("Error du coup adv "+errCoup+" validité "+valCoup);
+		return new CoupRep(errCoup, valCoup);
+	}
+	
+	/*public static Coup recevoirCoup(InputStream in){
+		
+	}*/
 }

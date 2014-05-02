@@ -78,11 +78,13 @@ main(int argc, char **argv) {
 	if(rep.couleur == 0){
 		printf("Envoi du coup\n");
 		coup.idRequest = COUP;
-	  	coup.couleurPion = BLANC;
-	  	coup.propCoup = DEPL_PION;
-	  	coup.deplPion.caseDepPion.axeLettre = AXE_A;
-	  	coup.deplPion.caseArrPion.axeChiffre = AXE_UN;
-	  	err = send(sock, &coup, sizeof(coup), 0);
+	  coup.couleurPion = BLANC;
+	  coup.propCoup = DEPL_PION;
+	  coup.deplPion.caseDepPion.axeLettre = AXE_E;
+	  coup.deplPion.caseDepPion.axeChiffre = AXE_UN;
+	  coup.deplPion.caseArrPion.axeChiffre = AXE_DEUX;
+	  coup.deplPion.caseArrPion.axeLettre = AXE_E;
+	  err = send(sock, &coup, sizeof(coup), 0);
 		if (err < 0) {
 			perror("client : erreur sur le send");
 			shutdown(sock, 2); close(sock);
@@ -96,7 +98,20 @@ main(int argc, char **argv) {
     	shutdown(sock, 2);close(sock);
     	exit(4);
   	}
-  	printf("Coup de l'adversaire : ");
+  	printf("Coup de l'adversaire : \n");
+  	coup.idRequest = COUP;
+	  coup.couleurPion = BLANC;
+	  coup.propCoup = DEPL_PION;
+	  coup.deplPion.caseDepPion.axeLettre = AXE_E;
+	  coup.deplPion.caseDepPion.axeChiffre = AXE_UN;
+	  coup.deplPion.caseArrPion.axeChiffre = AXE_DEUX;
+	  coup.deplPion.caseArrPion.axeLettre = AXE_E;
+	  err = send(sock, &coup, sizeof(coup), 0);
+		if (err < 0) {
+			perror("client : erreur sur le send");
+			shutdown(sock, 2); close(sock);
+			exit(3);
+		}
   
   /* 
    * fermeture de la connexion et de la socket 
