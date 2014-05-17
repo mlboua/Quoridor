@@ -13,51 +13,13 @@
  ***********************************************************
  */
 
-/* include generaux */
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
+
 /* include fonctions TCP */
 #include "../includes/fonctionsTCP.h"
 
-#include "../includes/protocolQuoridor.h"
+#include "../includes/fonctionsServeur.h"
 #include "../includes/validation.h"
 
-/* taille du buffer de reception */
-#define TAIL_BUF 100
-
-void validReponse(int joueur, TypCoupRep rep){
-	//int err;
-	//err = send(joueur, &rep, sizeof(rep), 0);
-	if (send(joueur, &rep, sizeof(rep), 0) < 0) {
-		perror("serveur : erreur sur le send de la validite du coup");
-		shutdown(joueur, 2); close(joueur);
-		exit(3);
-	}
-}
-
-void partiReponse(int joueur, TypPartieRep partiRep){
-	//err = send(joueur, &partiRep, sizeof(partiRep), 0);
-	if (send(joueur, &partiRep, sizeof(partiRep), 0) < 0) {
-		perror("serveur : erreur sur le send de la reponse de partie");
-		shutdown(joueur, 2); close(joueur);
-		exit(3);
-	}
-}
-
-void envoyerCoup(int joueur, TypCoupReq coup){
-	//err = send(sock, &coup, sizeof(coup), 0);
-	if (send(joueur, &coup, sizeof(coup), 0) < 0) {
-		perror("client : erreur sur le send d'envoi du coup");
-		shutdown(joueur, 2); close(joueur);
-		exit(3);
-	}
-	printf("Coup envoyé\n");
-}
 
 //main
 main(int argc, char** argv) {
@@ -68,7 +30,6 @@ main(int argc, char** argv) {
   	struct sockaddr_in nom_transmis;	/* adresse de la socket de */
 					                     /* transmission */
   
-	char            buffer[TAIL_BUF];	/* buffer de reception */
   
   	socklen_t      size_addr_trans;	/* taille de l'adresse d'une socket */
   	
@@ -181,13 +142,13 @@ main(int argc, char** argv) {
 	FD_SET(joueurs[0], &parti);
 	FD_SET(joueurs[1], &parti);
 	tv.tv_sec = 6;
-  tv.tv_usec = 0;
+    tv.tv_usec = 0;
 	while(fin){
 	FD_ZERO(&parti);
 	FD_SET(joueurs[0], &parti);
 	FD_SET(joueurs[1], &parti);
 	tv.tv_sec = 6;
-  tv.tv_usec = 0;
+  	tv.tv_usec = 0;
   
 		retval = select(FD_SETSIZE,&parti, NULL,NULL,&tv);
 		if(retval == - 1){
@@ -197,7 +158,7 @@ main(int argc, char** argv) {
 			for(i=0;i<2;i++){
 				if(FD_ISSET(joueurs[i], &parti)){
 					if(joueurs[i] == joueurs[0]){
-						printf("Reception du coup du jouer 1\n");
+						//printf("Reception du coup du jouer 1\n");
 						err = recv(joueurs[0], &coup, sizeof(coup), 0);
 						if (err < 0) {
 							perror("serveur : erreur dans la reception du coup");
@@ -225,12 +186,13 @@ main(int argc, char** argv) {
 								}
 							break;
 							default:
-										printf("Erreur sur le type de requete\n");
+								printf("Erreur sur le type de requete\n");
+								fin = 0;
 							break;
 						}//fin de switch
 					}//fin de traitement du joueur 1
 					else{
-						printf("Reception du coup du jouer 2\n");
+						//printf("Reception du coup du jouer 2\n");
 						err = recv(joueurs[1], &coup, sizeof(coup), 0);
 						if (err < 0) {
 							perror("serveur : erreur dans la reception du coup");

@@ -79,11 +79,11 @@ main(int argc, char **argv) {
 		printf("Envoi du coup\n");
 		coup.idRequest = COUP;
 	  coup.couleurPion = BLANC;
-	  coup.propCoup = DEPL_PION;
-	  coup.deplPion.caseDepPion.axeLettre = AXE_E;
-	  coup.deplPion.caseDepPion.axeChiffre = AXE_UN;
-	  coup.deplPion.caseArrPion.axeChiffre = AXE_DEUX;
-	  coup.deplPion.caseArrPion.axeLettre = AXE_E;
+	  coup.propCoup = POS_MUR;
+	  coup.posMur.caseMur.axeLettre = AXE_E;
+	  coup.posMur.caseMur.axeChiffre = AXE_UN;
+	  coup.posMur.orientMur = HOR;
+	  //coup.posMur.caseArrPion.axeLettre = AXE_E;
 	  err = send(sock, &coup, sizeof(coup), 0);
 		if (err < 0) {
 			perror("client : erreur sur le send");

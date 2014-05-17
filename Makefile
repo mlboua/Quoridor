@@ -24,8 +24,8 @@ $(OBJ)/fonctionsTCP.o: $(SRC)/fonctionsTCP.c $(INC)/fonctionsTCP.h
 $(BIN)/client: $(SRC)/client.c $(OBJ)/fonctionsTCP.o
 	$(CC) $(SRC)/client.c -o $(BIN)/client $(OBJ)/fonctionsTCP.o  $(LD_FLAGS)
 
-$(BIN)/serveur: $(SRC)/serveur.c $(OBJ)/fonctionsTCP.o $(OBJ)/validation_32_v3.o
-	$(CC) $(SRC)/serveur.c -o $(BIN)/serveur $(OBJ)/fonctionsTCP.o  $(OBJ)/validation_32_v3.o $(LD_FLAGS)
+$(BIN)/serveur: $(SRC)/serveur.c $(SRC)/fonctionsServeur.c $(OBJ)/fonctionsTCP.o $(OBJ)/validation_32_v4.o
+	$(CC) $(SRC)/serveur.c $(SRC)/fonctionsServeur.c -o $(BIN)/serveur $(OBJ)/fonctionsTCP.o  $(OBJ)/validation_32_v4.o $(LD_FLAGS)
 
 clean:
 	rm *~ ; rm -i \#* ; rm *.o; \

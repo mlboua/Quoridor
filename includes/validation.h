@@ -19,6 +19,6 @@
  * le numero du joueur 1 pour A et 2 pour B
  * le type de coup (TypPropCoup)
  Elle renvoie TypBooleen */
-extern TypBooleen validationCoup( int joueur, TypCoupReq coup);
+extern int validationCoup( int joueur, TypCoupReq coup);
 
 #endif 
